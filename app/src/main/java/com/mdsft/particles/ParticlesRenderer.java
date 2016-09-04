@@ -10,6 +10,7 @@ import com.mdsft.particles.objects.ParticleSystem;
 import com.mdsft.particles.programs.ParticleShaderProgram;
 import com.mdsft.particles.util.Geometry.*;
 import com.mdsft.particles.util.MatrixHelper;
+import com.mdsft.particles.util.TextureHelper;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -30,6 +31,7 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
     private ParticleShooter greenParticleShooter;
     private ParticleShooter blueParticleShooter;
     private long globalStartTime;
+    private int texture;
 
     public ParticlesRenderer(Context context) {
         this.context = context;
@@ -44,19 +46,20 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         particleProgram = new ParticleShaderProgram(context);
         particleSystem = new ParticleSystem(20000);
         globalStartTime = System.nanoTime();
+        texture = TextureHelper.loadTexture(context, R.drawable.particle_texture);
 
         final Vector particleDirection = new Vector(0f, 0.5f, 0f);
 
         final float angleVarianceInDegrees = 15f;
         final float speedVariance = 1f;
 
-        redParticleShooter = new ParticleShooter( new Point(-1f, 0f, 0f), particleDirection,
+        redParticleShooter = new ParticleShooter( new Point(-0.8f, 0f, 0f), particleDirection,
             Color.rgb(255, 50, 5), angleVarianceInDegrees, speedVariance);
 
         greenParticleShooter = new ParticleShooter( new Point(0f, 0f, 0f), particleDirection,
             Color.rgb(25, 255, 25), angleVarianceInDegrees, speedVariance);
 
-        blueParticleShooter = new ParticleShooter( new Point(1f, 0f, 0f), particleDirection,
+        blueParticleShooter = new ParticleShooter( new Point(0.8f, 0f, 0f), particleDirection,
             Color.rgb(5, 50, 255), angleVarianceInDegrees, speedVariance);
     }
 
@@ -84,7 +87,7 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         blueParticleShooter.addParticles(particleSystem, currentTime, 5);
 
         particleProgram.useProgram();
-        particleProgram.setUniforms(viewProjectionMatrix, currentTime);
+        particleProgram.setUniforms(viewProjectionMatrix, currentTime, texture);
         particleSystem.bindData(particleProgram);
         particleSystem.draw();
     }

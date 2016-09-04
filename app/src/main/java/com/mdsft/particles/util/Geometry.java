@@ -1,7 +1,5 @@
 package com.mdsft.particles.util;
 
-import java.util.Vector;
-
 public class Geometry {
     public static class Point {
         public final float x, y, z;
