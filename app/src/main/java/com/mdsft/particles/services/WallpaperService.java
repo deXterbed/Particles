@@ -6,14 +6,12 @@ import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
 import android.os.Handler;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
-import android.widget.Toast;
+import android.view.View;
 
 import com.mdsft.particles.ParticlesRenderer;
 
-/**
- * Created by spidergears on 05/09/16.
- */
 public class WallpaperService extends android.service.wallpaper.WallpaperService {
 
     @Override
@@ -65,6 +63,37 @@ public class WallpaperService extends android.service.wallpaper.WallpaperService
                 wallpaperGLSurfaceView.setEGLContextClientVersion(2);
                 // Assign the renderer.
                 wallpaperGLSurfaceView.setRenderer(particlesRenderer);
+
+                wallpaperGLSurfaceView.setOnTouchListener(new View.OnTouchListener() {
+                    float previousX, previousY;
+
+                    @Override
+                    public boolean onTouch(View v, MotionEvent event) {
+                        if (event != null) {
+                            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                                previousX = event.getX();
+                                previousY = event.getY();
+                            } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                                final float deltaX = event.getX() - previousX;
+                                final float deltaY = event.getY() - previousY;
+
+                                previousX = event.getX();
+                                previousY = event.getY();
+
+                                wallpaperGLSurfaceView.queueEvent(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        particlesRenderer.handleTouchDrag(deltaX, deltaY);
+                                    }
+                                });
+
+                            }
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
+                });
                 rendererSet = true;
             }
             else {
