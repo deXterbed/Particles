@@ -33,10 +33,13 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
     private final float[] tempMatrix = new float[16];
     private final float[] modelViewProjectionMatrix = new float[16];
 
+    private final float[] modelViewMatrix = new float[16];
+    private final float[] it_modelViewMatrix = new float[16];
+
     private ParticleShaderProgram particleProgram;
     private ParticleSystem particleSystem;
     private ParticleShooter redParticleShooter;
-    private ParticleShooter greenParticleShooter;
+    private ParticleShooter pinkParticleShooter;
     private ParticleShooter blueParticleShooter;
     private long globalStartTime;
     private int particleTexture;
@@ -52,7 +55,18 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
 
     private float xRotation, yRotation;
 
-    private final Vector vectorToLight = new Vector(0.30f, 0.35f, -0.89f).normalize();
+    final float[] vectorToLight = {0.30f, 0.35f, -0.89f, 0f};
+
+    private final float[] pointLightPositions = new float[]
+        {-1f, 1f, 0f, 1f,
+         0f, 1f, 0f, 1f,
+         1f, 1f, 0f, 1f};
+
+    private final float[] pointLightColors = new float[]
+        {1.00f, 0.20f, 0.02f,
+         1.00f, 0.75f, 0.79f,
+         0.02f, 0.20f, 1.00f};
+
 
     private long frameStartTimeMs;
     private long startTimeMs;
@@ -107,7 +121,7 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         redParticleShooter = new ParticleShooter( new Point(-0.8f, 0f, 0f), particleDirection,
             Color.rgb(255, 50, 5), angleVarianceInDegrees, speedVariance);
 
-        greenParticleShooter = new ParticleShooter( new Point(0f, 0f, 0f), particleDirection,
+        pinkParticleShooter = new ParticleShooter( new Point(0f, 0f, 0f), particleDirection,
             Color.rgb(255, 192, 203), angleVarianceInDegrees, speedVariance);
 
         blueParticleShooter = new ParticleShooter( new Point(0.8f, 0f, 0f), particleDirection,
@@ -149,13 +163,12 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         float currentTime = (System.nanoTime() - globalStartTime) / 1000000000f;
 
         redParticleShooter.addParticles(particleSystem, currentTime, 5);
-        greenParticleShooter.addParticles(particleSystem, currentTime, 5);
+        pinkParticleShooter.addParticles(particleSystem, currentTime, 5);
         blueParticleShooter.addParticles(particleSystem, currentTime, 5);
 
         setIdentityM(modelMatrix, 0);
-        updateMvpMatrixForParticles();
+        updateMvpMatrix();
 
-        glDisable(GL_DEPTH_TEST);
         glDepthMask(false);
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE);
@@ -167,7 +180,6 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
 
         glDisable(GL_BLEND);
         glDepthMask(true);
-        glEnable(GL_DEPTH_TEST);
     }
 
     private void drawHeightmap() {
@@ -175,8 +187,17 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         scaleM(modelMatrix, 0, 100f, 10f, 100f);
         updateMvpMatrix();
         heightmapProgram.useProgram();
-        heightmapProgram.setUniforms(modelViewProjectionMatrix, vectorToLight,
-            grassTexture, stoneTexture);
+
+        final float[] vectorToLightInEyeSpace = new float[4];
+        final float[] pointPositionsInEyeSpace = new float[12];
+        multiplyMV(vectorToLightInEyeSpace, 0, viewMatrix, 0, vectorToLight, 0);
+        multiplyMV(pointPositionsInEyeSpace, 0, viewMatrix, 0, pointLightPositions, 0);
+        multiplyMV(pointPositionsInEyeSpace, 4, viewMatrix, 0, pointLightPositions, 4);
+        multiplyMV(pointPositionsInEyeSpace, 8, viewMatrix, 0, pointLightPositions, 8);
+
+        heightmapProgram.setUniforms(modelViewMatrix, it_modelViewMatrix,
+            modelViewProjectionMatrix, vectorToLightInEyeSpace,
+            pointPositionsInEyeSpace, pointLightColors, grassTexture, stoneTexture);
         heightmap.bindData(heightmapProgram);
         heightmap.draw();
     }
@@ -192,18 +213,15 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
     }
 
     private void updateMvpMatrix() {
-        multiplyMM(tempMatrix, 0, viewMatrix, 0, modelMatrix, 0);
-        multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, tempMatrix, 0);
+        multiplyMM(modelViewMatrix, 0, viewMatrix, 0, modelMatrix, 0);
+        invertM(tempMatrix, 0, modelViewMatrix, 0);
+        transposeM(it_modelViewMatrix, 0, tempMatrix, 0);
+        multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, modelViewMatrix, 0);
     }
 
     private void updateMvpMatrixForSkybox() {
         multiplyMM(tempMatrix, 0, viewMatrixForSkybox, 0, modelMatrix, 0);
         multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, tempMatrix, 0);
-    }
-
-    private void updateMvpMatrixForParticles() {
-        translateM(modelMatrix, 0, 0, -1.5f, -5f);
-        multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, modelMatrix, 0);
     }
 
     private void limitFrameRate(int framesPerSecond) {

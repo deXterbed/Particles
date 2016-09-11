@@ -16,6 +16,12 @@ public class ShaderProgram {
     protected static final String U_TEXTURE_UNIT_2 = "u_TextureUnit2";
     protected static final String U_VECTOR_TO_LIGHT = "u_VectorToLight";
 
+    protected static final String U_MV_MATRIX = "u_MVMatrix";
+    protected static final String U_IT_MV_MATRIX = "u_IT_MVMatrix";
+    protected static final String U_MVP_MATRIX = "u_MVPMatrix";
+    protected static final String U_POINT_LIGHT_POSITIONS = "u_PointLightPositions";
+    protected static final String U_POINT_LIGHT_COLORS = "u_PointLightColors";
+
     // Attribute constants
     protected static final String A_POSITION = "a_Position";
     protected static final String A_NORMAL = "a_Normal";
