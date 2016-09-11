@@ -4,10 +4,13 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.opengl.GLSurfaceView;
+import android.os.SystemClock;
+import android.util.Log;
 
 import com.mdsft.particles.objects.*;
 import com.mdsft.particles.programs.*;
 import com.mdsft.particles.util.Geometry.*;
+import com.mdsft.particles.util.LoggerConfig;
 import com.mdsft.particles.util.MatrixHelper;
 import com.mdsft.particles.util.TextureHelper;
 
@@ -18,6 +21,8 @@ import static android.opengl.GLES20.*;
 import static android.opengl.Matrix.*;
 
 public class ParticlesRenderer implements GLSurfaceView.Renderer {
+    private static final String TAG = "ParticlesRenderer";
+
     private final Context context;
 
     private final float[] modelMatrix = new float[16];
@@ -46,6 +51,10 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
     private float xRotation, yRotation;
 
     private final Vector vectorToLight = new Vector(0.30f, 0.35f, -0.89f).normalize();
+
+    private long frameStartTimeMs;
+    private long startTimeMs;
+    private int frameCount;
 
     public ParticlesRenderer(Context context) {
         this.context = context;
@@ -101,6 +110,8 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onDrawFrame(GL10 gl) {
+        limitFrameRate(60);
+        logFrameRate();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         drawHeightmap();
         drawSkybox();
@@ -188,5 +199,27 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
     private void updateMvpMatrixForParticles() {
         translateM(modelMatrix, 0, 0, -1.5f, -5f);
         multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, modelMatrix, 0);
+    }
+
+    private void limitFrameRate(int framesPerSecond) {
+        long elapsedFrameTimeMs = SystemClock.elapsedRealtime() - frameStartTimeMs;
+        long expectedFrameTimeMs = 1000 / framesPerSecond;
+        long timeToSleepMs = expectedFrameTimeMs - elapsedFrameTimeMs;
+        if (timeToSleepMs > 0) {
+            SystemClock.sleep(timeToSleepMs);
+        }
+        frameStartTimeMs = SystemClock.elapsedRealtime();
+    }
+
+    private void logFrameRate() {
+        if (LoggerConfig.ON) {
+            long elapsedRealtimeMs = SystemClock.elapsedRealtime();
+            double elapsedSeconds = (elapsedRealtimeMs - startTimeMs) / 1000.0;
+            if (elapsedSeconds >= 1.0) {
+                Log.v(TAG, frameCount / elapsedSeconds + "fps");
+                startTimeMs = SystemClock.elapsedRealtime();frameCount = 0;
+            }
+            frameCount++;
+        }
     }
 }

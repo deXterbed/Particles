@@ -4,6 +4,7 @@ import android.app.ActivityManager;
 import android.content.Context;
 import android.content.pm.ConfigurationInfo;
 import android.opengl.GLSurfaceView;
+import android.os.Build;
 import android.service.wallpaper.WallpaperService;
 import android.util.Log;
 import android.view.MotionEvent;
@@ -87,6 +88,10 @@ public class LiveWallpaperService extends WallpaperService {
             if (supportsEs2) {
                 // Request an OpenGL ES 2.0 compatible context.
                 wallpaperGLSurfaceView.setEGLContextClientVersion(2);
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+                    wallpaperGLSurfaceView.setPreserveEGLContextOnPause(true);
+                }
                 // Assign the renderer.
                 wallpaperGLSurfaceView.setRenderer(particlesRenderer);
                 rendererSet = true;
