@@ -44,6 +44,8 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
     private SkyboxShaderProgram skyboxProgram;
     private Skybox skybox;
     private int skyboxTexture;
+    private int grassTexture;
+    private int stoneTexture;
 
     private HeightmapShaderProgram heightmapProgram;
     private Heightmap heightmap;
@@ -58,6 +60,17 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
 
     public ParticlesRenderer(Context context) {
         this.context = context;
+    }
+
+    public void handleTouchDrag(float deltaX, float deltaY) {
+        xRotation += deltaX / 16f;
+        yRotation += deltaY / 16f;
+        if (yRotation < -90) {
+            yRotation = -90;
+        } else if (yRotation > 90) {
+            yRotation = 90;
+        }
+        updateViewMatrices();
     }
 
     @Override
@@ -83,6 +96,8 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         heightmapProgram = new HeightmapShaderProgram(context);
         heightmap = new Heightmap(BitmapFactory.decodeResource(context.getResources(),
             R.drawable.heightmap));
+        grassTexture = TextureHelper.loadTexture(context, R.drawable.grass);
+        stoneTexture = TextureHelper.loadTexture(context, R.drawable.stone);
 
         final Vector particleDirection = new Vector(0f, 0.5f, 0f);
 
@@ -160,20 +175,10 @@ public class ParticlesRenderer implements GLSurfaceView.Renderer {
         scaleM(modelMatrix, 0, 100f, 10f, 100f);
         updateMvpMatrix();
         heightmapProgram.useProgram();
-        heightmapProgram.setUniforms(modelViewProjectionMatrix, vectorToLight);
+        heightmapProgram.setUniforms(modelViewProjectionMatrix, vectorToLight,
+            grassTexture, stoneTexture);
         heightmap.bindData(heightmapProgram);
         heightmap.draw();
-    }
-
-    public void handleTouchDrag(float deltaX, float deltaY) {
-        xRotation += deltaX / 16f;
-        yRotation += deltaY / 16f;
-        if (yRotation < -90) {
-            yRotation = -90;
-        } else if (yRotation > 90) {
-            yRotation = 90;
-        }
-        updateViewMatrices();
     }
 
     private void updateViewMatrices() {

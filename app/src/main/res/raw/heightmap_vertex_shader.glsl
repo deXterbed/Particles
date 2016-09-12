@@ -3,10 +3,16 @@ uniform vec3 u_VectorToLight;
 
 attribute vec3 a_Position;
 attribute vec3 a_Normal;
+attribute vec2 a_TextureCoordinates;
 
 varying vec3 v_Color;
+varying float v_Ratio;
+varying vec2 v_TextureCoordinates;
 
 void main() {
+    v_TextureCoordinates = a_TextureCoordinates;
+    v_Ratio = a_Position.y;
+
     v_Color = mix(vec3(0.180, 0.467, 0.153),
                   vec3(0.660, 0.670, 0.680),
                   a_Position.y);

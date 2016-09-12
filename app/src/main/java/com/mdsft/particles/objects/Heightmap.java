@@ -1,36 +1,41 @@
 package com.mdsft.particles.objects;
 
+import com.mdsft.particles.data.VertexBuffer;
+
+import static android.opengl.GLES20.*;
+import static com.mdsft.particles.Constants.BYTES_PER_FLOAT;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 
 import com.mdsft.particles.data.IndexBuffer;
-import com.mdsft.particles.data.VertexBuffer;
 import com.mdsft.particles.programs.HeightmapShaderProgram;
-
 import static com.mdsft.particles.util.Geometry.*;
-import static android.opengl.GLES20.*;
-import static com.mdsft.particles.Constants.BYTES_PER_FLOAT;
 
 public class Heightmap {
     private static final int POSITION_COMPONENT_COUNT = 3;
     private static final int NORMAL_COMPONENT_COUNT = 3;
+    private static final int TEXTURE_COORDINATES_COMPONENT_COUNT = 2;
     private static final int TOTAL_COMPONENT_COUNT =
-        POSITION_COMPONENT_COUNT + NORMAL_COMPONENT_COUNT;
-    private static final int STRIDE =
-        (POSITION_COMPONENT_COUNT + NORMAL_COMPONENT_COUNT) * BYTES_PER_FLOAT;
+        POSITION_COMPONENT_COUNT
+      + NORMAL_COMPONENT_COUNT
+      + TEXTURE_COORDINATES_COMPONENT_COUNT;
+    private static final int STRIDE = TOTAL_COMPONENT_COUNT * BYTES_PER_FLOAT;
 
     private final int width;
     private final int height;
     private final int numElements;
+
     private final VertexBuffer vertexBuffer;
     private final IndexBuffer indexBuffer;
 
     public Heightmap(Bitmap bitmap) {
         width = bitmap.getWidth();
         height = bitmap.getHeight();
+
         if (width * height > 65536) {
             throw new RuntimeException("Heightmap is too large for the index buffer.");
         }
+
         numElements = calculateNumElements();
         vertexBuffer = new VertexBuffer(loadBitmapData(bitmap));
         indexBuffer = new IndexBuffer(createIndexData());
@@ -48,7 +53,9 @@ public class Heightmap {
 
         for (int row = 0; row < height; row++) {
             for (int col = 0; col < width; col++) {
+
                 final Point point = getPoint(pixels, row, col);
+
                 heightmapVertices[offset++] = point.x;
                 heightmapVertices[offset++] = point.y;
                 heightmapVertices[offset++] = point.z;
@@ -65,24 +72,31 @@ public class Heightmap {
                 heightmapVertices[offset++] = normal.x;
                 heightmapVertices[offset++] = normal.y;
                 heightmapVertices[offset++] = normal.z;
+
+                // Texture coordinates
+                heightmapVertices[offset++] = point.x * 50f;
+                heightmapVertices[offset++] = point.z * 50f;
             }
         }
+
         return heightmapVertices;
     }
 
     private Point getPoint(int[] pixels, int row, int col) {
         float x = ((float)col / (float)(width - 1)) - 0.5f;
         float z = ((float)row / (float)(height - 1)) - 0.5f;
+
         row = clamp(row, 0, width - 1);
         col = clamp(col, 0, height - 1);
+
         float y = (float)Color.red(pixels[(row * height) + col]) / (float)255;
+
         return new Point(x, y, z);
     }
 
     private int clamp(int val, int min, int max) {
         return Math.max(min, Math.min(max, val));
     }
-
 
     private int calculateNumElements() {
         return (width - 1) * (height - 1) * 2 * 3;
@@ -91,6 +105,7 @@ public class Heightmap {
     private short[] createIndexData() {
         final short[] indexData = new short[numElements];
         int offset = 0;
+
         for (int row = 0; row < height - 1; row++) {
             for (int col = 0; col < width - 1; col++) {
                 short topLeftIndexNum = (short) (row * width + col);
@@ -101,6 +116,7 @@ public class Heightmap {
                 indexData[offset++] = topLeftIndexNum;
                 indexData[offset++] = bottomLeftIndexNum;
                 indexData[offset++] = topRightIndexNum;
+
                 indexData[offset++] = topRightIndexNum;
                 indexData[offset++] = bottomLeftIndexNum;
                 indexData[offset++] = bottomRightIndexNum;
@@ -119,6 +135,11 @@ public class Heightmap {
             POSITION_COMPONENT_COUNT * BYTES_PER_FLOAT,
             heightmapProgram.getNormalAttributeLocation(),
             NORMAL_COMPONENT_COUNT, STRIDE);
+
+        vertexBuffer.setVertexAttribPointer(
+            (POSITION_COMPONENT_COUNT + NORMAL_COMPONENT_COUNT) * BYTES_PER_FLOAT,
+            heightmapProgram.getTextureCoordinatesAttributeLocation(),
+            TEXTURE_COORDINATES_COMPONENT_COUNT, STRIDE);
     }
 
     public void draw() {
